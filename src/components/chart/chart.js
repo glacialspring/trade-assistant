@@ -20,6 +20,7 @@ const Chart = props => {
     const { x, y } = containerRef.current.getBoundingClientRect()
     origin.current = { x,y }
   })
+
   const [cursor, setCursor] = useState()
   const onMouseMove = e => {
     setCursor({ x: e.clientX - origin.current.x, y: e.clientY - origin.current.y })
@@ -71,7 +72,52 @@ const Chart = props => {
       onMouseMove={ onMouseMove }
       onMouseLeave={ onMouseLeave }
       onClick={ onPlaceTarget }
+      style={{ position: 'relative' }}
     >
+      { cursor &&
+        <label style={{
+            color: 'white',
+            position: 'absolute',
+            right: -7,
+            top: cursor.y,
+            transform: 'translate(100%, -50%)',
+          }}
+        >
+          { (-(cursor.y + margin - canvasY) / drawableH * height + min).toFixed(2) }
+        </label>
+      }
+      { targets.map( target => {
+          const y = canvasY - target/height * drawableH - margin
+          return (
+            <label style={{
+                color: lime,
+                position: 'absolute',
+                right: -7,
+                top: y,
+                transform: 'translate(100%, -50%)',
+              }}
+            >
+              { (-(y + margin - canvasY) / drawableH * height + min).toFixed(2) }
+            </label>
+          )
+        })
+      }
+      { stops.map( stop => {
+          const y = canvasY - stop/height * drawableH - margin
+          return (
+            <label style={{
+                color: orange,
+                position: 'absolute',
+                right: -7,
+                top: y,
+                transform: 'translate(100%, -50%)',
+              }}
+            >
+              { (-(y + margin - canvasY) / drawableH * height + min).toFixed(2) }
+            </label>
+          )
+        })
+      }
       <svg height={ canvasY } width={ canvasW }>
         { candles.map(cd => {
           const {
