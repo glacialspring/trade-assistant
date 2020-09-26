@@ -1,7 +1,5 @@
 find optimal strike in option chain for price target
 
-streamining price - live chart
-
 visually set underlying stop and target price
 modify stop loss of current trade visually
 
@@ -40,3 +38,9 @@ jiggle sell attempt (bid <-> mid <-> ask)
 tab1 trading with live chart
 tab2 setup API and trade rules
 tab3 results
+
+
+=======
+DONE
+=======
+X streamining price - live chart

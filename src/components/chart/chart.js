@@ -1,17 +1,24 @@
-import React, { useState, useLayoutEffect, useRef } from 'react'
+import React, { useState, useLayoutEffect, useRef, useImperativeHandle } from 'react'
 
 const lime = '#66bb6a'
 const green = '#26a69a'
 const red = '#ef5350'
 const gray = '#758696'
 const orange = '#f57c00'
+const blue = '#1976d2'
 
 const Chart = props => {
   const {
     candles,
     width: canvasW,
     height: canvasY,
+    isSettingStop,
+    isSettingTarget,
+    onSetStop,
+    onSetTarget,
   } = props
+  const isEditing = isSettingStop || isSettingTarget
+  const currentPrice = candles[candles.length-1].close
 
   // touch
   const containerRef = useRef()
@@ -24,25 +31,28 @@ const Chart = props => {
   const [cursor, setCursor] = useState()
   const onMouseMove = e => {
     setCursor({ x: e.clientX - origin.current.x, y: e.clientY - origin.current.y })
-    console.log(cursor)
   }
   const onMouseLeave = () => {
     setCursor(undefined)
   }
 
   // stops
-  const [stops, setStops] = useState([])
+  const [stop, setStop] = useState()
   const onPlaceStop = e => {
     const y = e.clientY - origin.current.y
-    const stop = -(y + margin - canvasY) / drawableH * height
-    setStops([...stops, stop])
+    let stop_ = -(y + margin - canvasY) / drawableH * height + min
+    stop_ = Number(stop_.toFixed(2))
+    setStop(stop_)
+    onSetStop(stop_)
   }
   // targets
-  const [targets, setTargets] = useState([])
+  const [target, setTarget] = useState()
   const onPlaceTarget = e => {
     const y = e.clientY - origin.current.y
-    const target = -(y + margin - canvasY) / drawableH * height
-    setTargets([...targets, target])
+    let target_ = -(y + margin - canvasY) / drawableH * height + min
+    target_ = Number(target_.toFixed(2))
+    setTarget(target_)
+    onSetTarget(target_)
   }
 
   // draw
@@ -65,16 +75,58 @@ const Chart = props => {
   const candleWidth = drawableW / candles.length * 0.6
   const width = endTs - startTs
   const height = max - min
+  const currentY = canvasY - (currentPrice - min)/height * drawableH - margin
+
+  const stopY = stop && canvasY - (stop-min)/height * drawableH - margin
+  const targetY = target && canvasY - (target-min)/height * drawableH - margin
+
+  const renderCandle = cd => {
+    const {
+      open: o,
+      close: c,
+      low: l,
+      high: h,
+      datetime: ts,
+    } = cd
+    const x = (ts - startTs) / width * drawableW + margin
+    const yo = canvasY - (o - min)/height * drawableH - margin
+    const yc = canvasY - (c - min)/height * drawableH - margin
+    const yl = canvasY - (l - min)/height * drawableH - margin
+    const yh = canvasY - (h - min)/height * drawableH - margin
+    const candleW_2 = candleWidth / 2
+    const yt = Math.min(yo, yc)
+    const yb = Math.max(yo, yc)
+    const color = c > o ? green : red
+
+    return (
+      <polygon
+        points={`${x-candleW_2},${yt} ${x},${yt} ${x},${yh} ${x},${yt} ${x+candleW_2},${yt} ${x+candleW_2},${yb} ${x},${yb} ${x},${yl} ${x},${yb} ${x-candleW_2},${yb}`}
+        fill={ color }
+        stroke={ color }
+        stroke-width="1"
+      />
+    )
+  }
 
   return (
     <div
       ref={ containerRef }
       onMouseMove={ onMouseMove }
       onMouseLeave={ onMouseLeave }
-      onClick={ onPlaceTarget }
-      style={{ position: 'relative' }}
+      onClick={ isSettingStop ? onPlaceStop : (isSettingTarget ? onPlaceTarget : undefined ) }
+      style={{position: 'relative'}}
     >
-      { cursor &&
+      <label style={{
+          color: blue,
+          position: 'absolute',
+          right: -7,
+          top: currentY,
+          transform: 'translate(100%, -50%)',
+        }}
+      >
+        { currentPrice }
+      </label>
+      { isEditing && cursor &&
         <label style={{
             color: 'white',
             position: 'absolute',
@@ -86,84 +138,43 @@ const Chart = props => {
           { (-(cursor.y + margin - canvasY) / drawableH * height + min).toFixed(2) }
         </label>
       }
-      { targets.map( target => {
-          const y = canvasY - target/height * drawableH - margin
-          return (
-            <label style={{
-                color: lime,
-                position: 'absolute',
-                right: -7,
-                top: y,
-                transform: 'translate(100%, -50%)',
-              }}
-            >
-              { (-(y + margin - canvasY) / drawableH * height + min).toFixed(2) }
-            </label>
-          )
-        })
+      { target &&
+        <label style={{
+            color: lime,
+            position: 'absolute',
+            right: -7,
+            top: canvasY - (target-min)/height * drawableH - margin,
+            transform: 'translate(100%, -50%)',
+          }}
+        >
+          { target.toFixed(2) }
+        </label>
       }
-      { stops.map( stop => {
-          const y = canvasY - stop/height * drawableH - margin
-          return (
-            <label style={{
-                color: orange,
-                position: 'absolute',
-                right: -7,
-                top: y,
-                transform: 'translate(100%, -50%)',
-              }}
-            >
-              { (-(y + margin - canvasY) / drawableH * height + min).toFixed(2) }
-            </label>
-          )
-        })
+      { stop &&
+        <label style={{
+            color: orange,
+            position: 'absolute',
+            right: -7,
+            top: canvasY - (stop-min)/height * drawableH - margin,
+            transform: 'translate(100%, -50%)',
+          }}
+        >
+          { stop.toFixed(2) }
+        </label>
       }
       <svg height={ canvasY } width={ canvasW }>
-        { candles.map(cd => {
-          const {
-            open: o,
-            close: c,
-            low: l,
-            high: h,
-            datetime: ts,
-          } = cd
-          const x = (ts - startTs) / width * drawableW + margin
-          const yo = canvasY - (o - min)/height * drawableH - margin
-          const yc = canvasY - (c - min)/height * drawableH - margin
-          const yl = canvasY - (l - min)/height * drawableH - margin
-          const yh = canvasY - (h - min)/height * drawableH - margin
-          const candleW_2 = candleWidth / 2
-          const yt = Math.min(yo, yc)
-          const yb = Math.max(yo, yc)
-          const color = c > o ? green : red
-
-          return (
-            <polygon
-              points={`${x-candleW_2},${yt} ${x},${yt} ${x},${yh} ${x},${yt} ${x+candleW_2},${yt} ${x+candleW_2},${yb} ${x},${yb} ${x},${yl} ${x},${yb} ${x-candleW_2},${yb}`}
-              fill={ color }
-              stroke={ color }
-              stroke-width="1"
-            />
-          )})
-        }
-        { cursor &&
+        { candles.map(renderCandle) }
+        <line x1="0" y1={ currentY } x2={ canvasW } y2={ currentY } stroke={ blue } stroke-width="2" stroke-dasharray="1,2" />
+        { isEditing && cursor &&
           <>
             <line x1="0" y1={ cursor.y } x2={ canvasW } y2={ cursor.y } stroke={ gray } stroke-width="1" stroke-dasharray="5,6" />
           </>
         }
-        { stops.map( stop => {
-            const y = canvasY - stop/height * drawableH - margin
-            return (
-              <line x1="0" y1={ y } x2={ canvasW } y2={ y } stroke={ orange } stroke-width="2" stroke-dasharray="2,6" />
-            )
-          })
+        { stop &&
+          <line x1="0" y1={ stopY } x2={ canvasW } y2={ stopY } stroke={ orange } stroke-width="1" stroke-dasharray="3,6" />
         }
-        { targets.map( target => {
-            const y = canvasY - target/height * drawableH - margin
-            return (
-              <line x1="0" y1={ y } x2={ canvasW } y2={ y } stroke={ lime } stroke-width="2" stroke-dasharray="2,6" />
-            )
-          })
+        { target &&
+          <line x1="0" y1={ targetY } x2={ canvasW } y2={ targetY } stroke={ lime } stroke-width="1" stroke-dasharray="3,6" />
         }
       </svg>
     </div>
