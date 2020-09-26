@@ -1,0 +1,42 @@
+find optimal strike in option chain for price target
+
+streamining price - live chart
+
+visually set underlying stop and target price
+modify stop loss of current trade visually
+
+keep track of entry exit
+
+limit trades a day
+
+limit max loss a day
+
+set hard stop
+
+set soft underlying price stop
+
+set soft underlying price scale out targets
+
+set hard scale out targets
+
+set order size (approximate or hard budget)
+
+calculate risk to reward based on underlying price stop and target
+
+close out tier of trade
+close out complete trade
+
+limit minimum risk to reward
+
+(optional) limit number of re-adds
+limit portfolio % of symbol
+
+(optional) limit trading time of day
+
+set bid pricing preference, aggressive or mid
+jiggle sell attempt (bid <-> mid <-> ask)
+
+
+tab1 trading with live chart
+tab2 setup API and trade rules
+tab3 results
