@@ -8,6 +8,7 @@ const blue = '#1976d2'
 const blueHover = "#1e88e5"
 const gray = '#2a2e39'
 const orange = '#f57c00'
+const red = '#ef5350'
 
 const OrderPlacer = () => {
   const currentPrice = candles[candles.length-1].close
@@ -177,6 +178,24 @@ const OrderPlacer = () => {
             <label style={{ color: 'gray' }}>Risk-Reward</label> { riskReward.toFixed(2) }
           </p>
         }
+        { isLive &&
+          <button style={{
+              backgroundColor: 'transparent',
+              borderStyle: 'solid',
+              borderWidth: 1,
+              borderColor: red,
+              borderRadius: 4,
+              color: red,
+              fontSize: 16,
+              padding: '10px 5px',
+              marginBottom: 20,
+              fontWeight: 300,
+              cursor: 'pointer',
+            }}
+          >
+            CLOSE OUT
+          </button>
+        }
       </div>
     )
   }
@@ -270,7 +289,22 @@ const OrderPlacer = () => {
           { renderSubOrder(1) }
           { renderSubOrder(2) }
         </div>
-        { !isLive &&
+        { isLive?
+          <button style={{
+              backgroundColor: red,
+              borderStyle: 'none',
+              borderRadius: 4,
+              color: 'white',
+              fontSize: 24,
+              padding: '10px 5px',
+              marginTop: 10,
+              fontWeight: 300,
+              cursor: 'pointer',
+            }}
+          >
+            CLOSE OUT ALL
+          </button>
+          :
           <button style={{
               backgroundColor: isReady ? blue : 'transparent',
               borderStyle: isReady ? 'none' : 'solid',
@@ -278,15 +312,16 @@ const OrderPlacer = () => {
               borderWidth: 1,
               borderRadius: 4,
               color: isReady ? 'white' : gray,
-              fontSize: 16,
+              fontSize: 24,
               padding: '10px 5px',
               marginTop: 10,
+              fontWeight: 300,
               cursor: isReady ? 'pointer' : 'default',
             }}
             disabled={ !isReady }
             onClick={ onPlaceOrder }
           >
-            Place Order
+            PLACE ORDER
           </button>
         }
       </div>
