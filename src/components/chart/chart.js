@@ -14,6 +14,8 @@ const Chart = props => {
     height: canvasY,
     isSettingStop,
     isSettingTarget,
+    stop,
+    targets,
     onSetStop,
     onSetTarget,
   } = props
@@ -37,21 +39,17 @@ const Chart = props => {
   }
 
   // stops
-  const [stop, setStop] = useState()
   const onPlaceStop = e => {
     const y = e.clientY - origin.current.y
     let stop_ = -(y + margin - canvasY) / drawableH * height + min
     stop_ = Number(stop_.toFixed(2))
-    setStop(stop_)
     onSetStop(stop_)
   }
   // targets
-  const [target, setTarget] = useState()
   const onPlaceTarget = e => {
     const y = e.clientY - origin.current.y
     let target_ = -(y + margin - canvasY) / drawableH * height + min
     target_ = Number(target_.toFixed(2))
-    setTarget(target_)
     onSetTarget(target_)
   }
 
@@ -78,7 +76,6 @@ const Chart = props => {
   const currentY = canvasY - (currentPrice - min)/height * drawableH - margin
 
   const stopY = stop && canvasY - (stop-min)/height * drawableH - margin
-  const targetY = target && canvasY - (target-min)/height * drawableH - margin
 
   const renderCandle = cd => {
     const {
@@ -117,7 +114,8 @@ const Chart = props => {
       style={{position: 'relative'}}
     >
       <label style={{
-          color: blue,
+          color: gray,
+          fontSize: 13,
           position: 'absolute',
           right: -7,
           top: currentY,
@@ -130,6 +128,7 @@ const Chart = props => {
         <label style={{
             color: 'white',
             position: 'absolute',
+            fontSize: 13,
             right: -7,
             top: cursor.y,
             transform: 'translate(100%, -50%)',
@@ -138,22 +137,27 @@ const Chart = props => {
           { (-(cursor.y + margin - canvasY) / drawableH * height + min).toFixed(2) }
         </label>
       }
-      { target &&
-        <label style={{
-            color: lime,
-            position: 'absolute',
-            right: -7,
-            top: canvasY - (target-min)/height * drawableH - margin,
-            transform: 'translate(100%, -50%)',
-          }}
-        >
-          { target.toFixed(2) }
-        </label>
+      { targets.map( target => {
+        const y = canvasY - (target-min)/height * drawableH - margin
+        return (
+          <label style={{
+              color: lime,
+              position: 'absolute',
+              fontSize: 13,
+              right: -7,
+              top: y,
+              transform: 'translate(100%, -50%)',
+            }}
+          >
+            { target.toFixed(2) }
+          </label>
+        )})
       }
       { stop &&
         <label style={{
             color: orange,
             position: 'absolute',
+            fontSize: 13,
             right: -7,
             top: canvasY - (stop-min)/height * drawableH - margin,
             transform: 'translate(100%, -50%)',
@@ -164,7 +168,7 @@ const Chart = props => {
       }
       <svg height={ canvasY } width={ canvasW }>
         { candles.map(renderCandle) }
-        <line x1="0" y1={ currentY } x2={ canvasW } y2={ currentY } stroke={ blue } stroke-width="2" stroke-dasharray="1,2" />
+        <line x1="0" y1={ currentY } x2={ canvasW } y2={ currentY } stroke={ blue } stroke-width="1" stroke-dasharray="1,2" />
         { isEditing && cursor &&
           <>
             <line x1="0" y1={ cursor.y } x2={ canvasW } y2={ cursor.y } stroke={ gray } stroke-width="1" stroke-dasharray="5,6" />
@@ -173,8 +177,11 @@ const Chart = props => {
         { stop &&
           <line x1="0" y1={ stopY } x2={ canvasW } y2={ stopY } stroke={ orange } stroke-width="1" stroke-dasharray="3,6" />
         }
-        { target &&
-          <line x1="0" y1={ targetY } x2={ canvasW } y2={ targetY } stroke={ lime } stroke-width="1" stroke-dasharray="3,6" />
+        { targets.map(target => {
+          const y = canvasY - (target-min)/height * drawableH - margin
+          return (
+            <line x1="0" y1={ y } x2={ canvasW } y2={ y } stroke={ lime } stroke-width="1" stroke-dasharray="3,6" />
+          )})
         }
       </svg>
     </div>
