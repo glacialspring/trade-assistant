@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Chart from './components/chart/chart'
 import candles from './components/chart/TSLA_short'
-import checkmark from './assets/images/checkmark.svg'
+// import checkmark from './assets/images/checkmark.svg'
 
 const lime = '#66bb6a'
 const blue = '#1976d2'
+const blueHover = "#1e88e5"
 const gray = '#2a2e39'
 const orange = '#f57c00'
 
@@ -13,6 +14,18 @@ const OrderPlacer = () => {
   const [isSettingStop, setIsSettingStop] = useState( false )
   const [isSettingTarget, setIsSettingTarget] = useState( false )
   const isEditing = isSettingStop || isSettingTarget
+  const escapeSetPrice = e => {
+    if ( e.key === 'Escape' ) {
+      setIsSettingTarget(false)
+      setIsSettingStop(false)
+    }
+  }
+  useEffect(() => {
+    window.addEventListener('keydown', escapeSetPrice)
+    return () => {
+      window.removeEventListener('keydown', escapeSetPrice)
+    }
+  }, [])
 
   const [stop, setStop] = useState()
   const [targets, setTargets] = useState([])
@@ -36,7 +49,8 @@ const OrderPlacer = () => {
     setIsSettingStop( false )
   }
   const [currentTier, setCurrentTier] = useState()
-  const onEditTarget = idx => () => {
+  const onEditTarget = idx => e => {
+    e.stopPropagation()
     setCurrentTier(idx)
     setIsSettingTarget( true )
   }
@@ -53,11 +67,53 @@ const OrderPlacer = () => {
   }
   useEffect(refreshRiskReward, [currentPrice, stop, targets])
 
-  let isReady = stop !== undefined
+  // hard stop
+  const [stopPerc, setStopPerc] = useState()
+  const onChangeStopPerc = e => {
+    const perc = Number(e.target.value.replace(/[^\d]/g, ''))
+    setStopPerc(perc)
+  }
+  const onKeyDownStopPerc = e => {
+    if ( e.key === 'Backspace' ) {
+      const start = e.target.selectionStart
+      const end = e.target.selectionEnd
+      if ( start === end && start-1 === String(stopPerc).length ) {
+        e.preventDefault()
+        setStopPerc(Number(String(stopPerc).substring(0,start-2)))
+      }
+    }
+  }
+
+  // hard target
+  const [targetPercs, setTargetPercs] = useState([])
+  const onChangeTargetPerc = e => {
+    const perc = Number(e.target.value.replace(/[^\d]/g, ''))
+    const newPercs = targetPercs.slice()
+    newPercs[currentTier] = perc
+    setTargetPercs(newPercs)
+  }
+  const onKeyDownTargetPerc = e => {
+    if ( e.key === 'Backspace' ) {
+      const start = e.target.selectionStart
+      const end = e.target.selectionEnd
+      const current = targetPercs[currentTier]
+      if ( start === end && start-1 === String(current).length ) {
+        e.preventDefault()
+        const newPercs = targetPercs.slice()
+        newPercs[currentTier] = Number(String(current).substring(0,start-2))
+        setTargetPercs(newPercs)
+      }
+    }
+  }
+
+  let isReady = stop !== undefined && stopPerc !== undefined
   if ( isReady ) {
     let i = 0
     for (const target of targets) {
       if ( target === undefined ) {
+        break
+      }
+      if ( targetPercs[i] === undefined ) {
         break
       }
       i++
@@ -65,19 +121,47 @@ const OrderPlacer = () => {
     isReady = i === 3
   }
 
+  const [isLive, setIsLive] = useState(false)
+  const onPlaceOrder = () => {
+    if ( !isReady ) {
+      return
+    }
+    setIsLive(true)
+  }
+
   const renderSubOrder = idx => {
+    const targetPerc = targetPercs[idx]
     const target = targets[idx]
     const riskReward = riskRewards[idx]
 
     return (
-      <div style={{ width: 200, margin: 15, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+      <div style={{ width: 120, margin: idx !== 0 && idx !== 2 && '0 10px', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+        <input style={{
+            backgroundColor: 'black',
+            borderStyle: 'solid',
+            borderColor: targetPerc ? 'white' : 'gray',
+            borderWidth: 1,
+            borderRadius: 4,
+            color: targetPerc ? 'white' : 'gray',
+            fontSize: 16,
+            padding: '10px 5px',
+            textAlign: 'center',
+            marginBottom: 10,
+          }}
+          value={ targetPerc !== undefined ? `${targetPerc}%` : undefined }
+          type="text"
+          placeholder="Hard Target%"
+          onFocus={ () => setCurrentTier(idx) }
+          onChange={ onChangeTargetPerc }
+          onKeyDown={ onKeyDownTargetPerc }
+        />
         <button style={{
             backgroundColor: 'transparent',
             borderStyle: 'solid',
-            borderColor: isSettingTarget ? gray : target ? lime : 'gray',
+            borderColor: isSettingTarget ? gray : target ? 'white' : 'gray',
             borderWidth: 1,
             borderRadius: 4,
-            color: isSettingTarget ? gray : target ? lime: 'gray',
+            color: isSettingTarget ? gray : target ? 'white' : 'gray',
             fontSize: 16,
             padding: '10px 5px',
             cursor: isSettingTarget ? 'default' : 'pointer',
@@ -85,12 +169,12 @@ const OrderPlacer = () => {
           onClick={ onEditTarget(idx) }
           disabled={ isSettingTarget }
         >
-          { target ? `Edit Price Target: ${ target }` : 'Set Stock Price Target' }
-          { !isSettingTarget && target && <img style={{ width: 20, position: 'absolute', transform: 'translate(2px, -3px)' }} src={checkmark} alt="checkmark" /> }
+          { target ? `Target: $${ target.toFixed(2) }` : 'Stock Target' }
+          {/* { !isSettingTarget && target && <img style={{ width: 20, position: 'absolute', transform: 'translate(2px, -3px)' }} src={checkmark} alt="checkmark" /> } */}
         </button>
         { riskReward &&
           <p style={{ fontSize: 13, textAlign: 'center', color: 'white', marginTop: 2 }}>
-            <label style={{ color: 'gray' }}>Risk Reward</label> { riskReward.toFixed(2) }
+            <label style={{ color: 'gray' }}>Risk-Reward</label> { riskReward.toFixed(2) }
           </p>
         }
       </div>
@@ -98,11 +182,17 @@ const OrderPlacer = () => {
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <div style={{ borderColor: isEditing ? blue : gray, borderWidth: 3, borderStyle: 'solid', margin: 20, marginRight: 40 }}>
+    <div
+      style={{ display: 'flex', justifyContent: 'center', padding: 20 }}
+      onClick={ () => {
+        setIsSettingTarget(false)
+        setIsSettingStop(false)
+      }}
+    >
+      <div style={{ borderColor: isEditing ? blue : gray, borderWidth: 3, borderStyle: 'solid', marginRight: 60 }}>
         <Chart
           candles={ candles }
-          width={600}
+          width={700}
           height={500}
           isSettingStop={ isSettingStop }
           isSettingTarget={ isSettingTarget }
@@ -113,48 +203,92 @@ const OrderPlacer = () => {
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <h2 style={{ position: 'relative', fontSize: '2.5em', color: 'white', fontWeight: 300, letterSpacing: 3, lineHeight: 1, textAlign: 'center', margin: '0 0 20px' }}>
+          TSLA
+          { isLive &&
+            <span style={{ position: 'absolute', color: 'lime', fontWeight: 'bold', fontSize: 14 }}>
+              <span style={{ fontSize: 24 }}>•</span>LIVE
+            </span>
+          }
+        </h2>
+        <input style={{
+            backgroundColor: 'black',
+            borderStyle: 'solid',
+            borderColor: 'gray',
+            borderWidth: 1,
+            borderRadius: 4,
+            color: 'gray',
+            fontSize: 16,
+            padding: '10px 5px',
+            textAlign: 'center',
+            marginBottom: 10,
+          }}
+          type="text"
+          placeholder="Strike"
+        />
+        <input style={{
+            backgroundColor: 'black',
+            borderStyle: 'solid',
+            borderColor: stopPerc ? 'white' : 'gray',
+            borderWidth: 1,
+            borderRadius: 4,
+            color: stopPerc ? 'white' : 'gray',
+            fontSize: 16,
+            padding: '10px 5px',
+            marginBottom: 10,
+            textAlign: 'center',
+          }}
+          value={ stopPerc !== undefined ? `${stopPerc}%` : undefined }
+          type="text"
+          placeholder="Hard Stop%"
+          onChange={ onChangeStopPerc }
+          onKeyDown={ onKeyDownStopPerc }
+        />
         <button style={{
             backgroundColor: 'transparent',
             borderStyle: 'solid',
-            borderColor: isSettingStop ? gray : stop ? orange : 'gray',
+            borderColor: isSettingStop ? gray : stop ? 'white' : 'gray',
             borderWidth: 1,
             borderRadius: 4,
-            color: isSettingStop ? gray : stop ? orange : 'gray',
+            color: isSettingStop ? gray : stop ? 'white' : 'gray',
             padding: '10px 5px',
             fontSize: 16,
-            margin: 15,
-            marginTop: 20,
-            marginBottom: 0,
+            marginBottom: 10,
             cursor: isSettingStop ? 'default' : 'pointer',
           }}
-          onClick={ () => setIsSettingStop( true ) }
+          onClick={ e => {
+            e.stopPropagation()
+            setIsSettingStop( true )
+          }}
           disabled={ isSettingStop }
         >
-          { stop ? `Edit Price Stop: ${ stop }` : 'Set Stock Price Stop' }
-          { !isSettingStop && stop && <img style={{ width: 20, position: 'absolute', transform: 'translate(2px, -3px)' }} src={checkmark} alt="checkmark" /> }
+          { stop ? `Stop: $${ stop.toFixed(2) }` : 'Stock Price Stop' }
+          {/* { !isSettingStop && stop && <img style={{ width: 20, position: 'absolute', transform: 'translate(2px, -3px)' }} src={checkmark} alt="checkmark" /> } */}
         </button>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           { renderSubOrder(0) }
           { renderSubOrder(1) }
           { renderSubOrder(2) }
         </div>
-        <button style={{
-            backgroundColor: 'transparent',
-            borderStyle: 'solid',
-            borderColor: isReady ? 'white' : gray,
-            borderWidth: 1,
-            borderRadius: 4,
-            color: isReady ? 'white' : gray,
-            fontSize: 16,
-            padding: '10px 5px',
-            margin: 15,
-            marginTop: 0,
-            cursor: isReady ? 'pointer' : 'default',
-          }}
-          disabled={ !isReady }
-        >
-          Place Order
-        </button>
+        { !isLive &&
+          <button style={{
+              backgroundColor: isReady ? blue : 'transparent',
+              borderStyle: isReady ? 'none' : 'solid',
+              borderColor: gray,
+              borderWidth: 1,
+              borderRadius: 4,
+              color: isReady ? 'white' : gray,
+              fontSize: 16,
+              padding: '10px 5px',
+              marginTop: 10,
+              cursor: isReady ? 'pointer' : 'default',
+            }}
+            disabled={ !isReady }
+            onClick={ onPlaceOrder }
+          >
+            Place Order
+          </button>
+        }
       </div>
     </div>
   )

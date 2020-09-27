@@ -70,7 +70,7 @@ const Chart = props => {
   const margin = 10
   const drawableW = canvasW-2*margin
   const drawableH = canvasY-2*margin
-  const candleWidth = drawableW / candles.length * 0.6
+  const candleWidth = drawableW / candles.length * 0.5
   const width = endTs - startTs
   const height = max - min
   const currentY = canvasY - (currentPrice - min)/height * drawableH - margin
