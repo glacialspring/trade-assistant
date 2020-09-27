@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Chart from './components/chart/chart'
 import candles from './components/chart/TSLA_short'
+import checkmark from './assets/images/checkmark.svg'
 
 const lime = '#66bb6a'
 const blue = '#1976d2'
@@ -52,6 +53,18 @@ const OrderPlacer = () => {
   }
   useEffect(refreshRiskReward, [currentPrice, stop, targets])
 
+  let isReady = stop !== undefined
+  if ( isReady ) {
+    let i = 0
+    for (const target of targets) {
+      if ( target === undefined ) {
+        break
+      }
+      i++
+    }
+    isReady = i === 3
+  }
+
   const renderSubOrder = idx => {
     const target = targets[idx]
     const riskReward = riskRewards[idx]
@@ -61,17 +74,19 @@ const OrderPlacer = () => {
         <button style={{
             backgroundColor: 'transparent',
             borderStyle: 'solid',
-            borderColor: isSettingTarget ? gray : lime,
+            borderColor: isSettingTarget ? gray : target ? lime : 'gray',
             borderWidth: 1,
             borderRadius: 4,
-            color: isSettingTarget ? gray : lime,
+            color: isSettingTarget ? gray : target ? lime: 'gray',
             fontSize: 16,
             padding: '10px 5px',
+            cursor: isSettingTarget ? 'default' : 'pointer',
           }}
           onClick={ onEditTarget(idx) }
           disabled={ isSettingTarget }
         >
           { target ? `Edit Price Target: ${ target }` : 'Set Stock Price Target' }
+          { !isSettingTarget && target && <img style={{ width: 20, position: 'absolute', transform: 'translate(2px, -3px)' }} src={checkmark} alt="checkmark" /> }
         </button>
         { riskReward &&
           <p style={{ fontSize: 13, textAlign: 'center', color: 'white', marginTop: 2 }}>
@@ -101,20 +116,22 @@ const OrderPlacer = () => {
         <button style={{
             backgroundColor: 'transparent',
             borderStyle: 'solid',
-            borderColor: isSettingStop ? gray : orange,
+            borderColor: isSettingStop ? gray : stop ? orange : 'gray',
             borderWidth: 1,
             borderRadius: 4,
-            color: isSettingStop ? gray : orange,
+            color: isSettingStop ? gray : stop ? orange : 'gray',
             padding: '10px 5px',
             fontSize: 16,
             margin: 15,
             marginTop: 20,
             marginBottom: 0,
+            cursor: isSettingStop ? 'default' : 'pointer',
           }}
           onClick={ () => setIsSettingStop( true ) }
           disabled={ isSettingStop }
         >
           { stop ? `Edit Price Stop: ${ stop }` : 'Set Stock Price Stop' }
+          { !isSettingStop && stop && <img style={{ width: 20, position: 'absolute', transform: 'translate(2px, -3px)' }} src={checkmark} alt="checkmark" /> }
         </button>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           { renderSubOrder(0) }
@@ -124,15 +141,17 @@ const OrderPlacer = () => {
         <button style={{
             backgroundColor: 'transparent',
             borderStyle: 'solid',
-            borderColor: 'white',
+            borderColor: isReady ? 'white' : gray,
             borderWidth: 1,
             borderRadius: 4,
-            color: 'white',
+            color: isReady ? 'white' : gray,
             fontSize: 16,
             padding: '10px 5px',
             margin: 15,
             marginTop: 0,
+            cursor: isReady ? 'pointer' : 'default',
           }}
+          disabled={ !isReady }
         >
           Place Order
         </button>

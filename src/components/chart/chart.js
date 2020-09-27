@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useRef, useImperativeHandle } from 'react'
+import React, { useState, useLayoutEffect, useRef } from 'react'
 
 const lime = '#66bb6a'
 const green = '#26a69a'
